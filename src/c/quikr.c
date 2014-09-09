@@ -131,23 +131,21 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 
-	if(kmer == 0) {
-		fprintf(stderr, "Error: zero is not a valid kmer\n");
-		exit(EXIT_FAILURE);
-	}
+	// load sensing matrix
+	struct matrix *sensing_matrix = load_sensing_matrix(sensing_matrix_filename, kmer);
 
+	if(kmer == 0) {
+		fprintf(stdout, "Warning: zero is not a valid kmer, inferring kmer from sensing matrix\n");
+		kmer = sensing_matrix->kmer;
+	}
 
 	// 4 "ACGT" ^ Kmer gives us the size of output rows
 	width = pow_four(kmer);
-
-	// load sensing matrix
-	struct matrix *sensing_matrix = load_sensing_matrix(sensing_matrix_filename, kmer);
 
 	if(verbose) {
 		printf("width: %llu\n", width);
 		printf("sequences: %llu\n", sensing_matrix->sequences);
 	}
-
 
 
 	// load counts matrix

@@ -63,10 +63,8 @@ char **get_fasta_files_from_file(char *fn) {
 	files = malloc(sizeof(char **));
 
 	while ((read = getline(&line, &len, fh)) != -1) {
-		char *file = malloc(sizeof(char) * (strlen(line)));	
-		if(file == NULL) {
-			exit(EXIT_FAILURE);
-		}
+		char *file = malloc(sizeof(char) * (strlen(line) + 1));	
+		check_malloc(file, NULL);
 		strncpy(file, line, strlen(line) + 1 );
 		file[strlen(file)- 1] = '\0';
 	
@@ -94,7 +92,7 @@ char **get_fasta_files_from_file(char *fn) {
 		fprintf(stderr, "could not realloc keys\n");
 		exit(EXIT_FAILURE);
 	}
-	files[files_count] = NULL;
+	files[files_count - 1] = NULL;
 	
 	fclose(fh);
 	return files;
@@ -311,9 +309,11 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 
+	struct matrix *sensing_matrix = load_sensing_matrix(sensing_matrix_filename, kmer);
+
 	if(kmer == 0) {
-		fprintf(stderr, "Error: zero is not a valid kmer\n");
-		exit(EXIT_FAILURE);
+		fprintf(stdout, "Warning: zero is not a valid kmer, inferring kmer from sensing matrix (%d)\n", sensing_matrix->kmer);
+		kmer = sensing_matrix->kmer;
 	}
 
 	// load filenames
@@ -334,7 +334,6 @@ int main(int argc, char **argv) {
 	// 4 "ACGT" ^ Kmer gives us the size of output rows
 	width = pow(4, kmer);
 
-	struct matrix *sensing_matrix = load_sensing_matrix(sensing_matrix_filename, kmer);
 	double *sensing_matrix_ptr = sensing_matrix->matrix;
 	unsigned long long sequences = sensing_matrix->sequences;
 

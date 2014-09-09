@@ -317,9 +317,10 @@ struct matrix *load_sensing_matrix(const char *filename, unsigned int target_kme
 	}
 	lineno++;
 
-	if(kmer != target_kmer) {
-		fprintf(stderr, "The sensing_matrix was trained with a different kmer than your requested kmer\n");
-		exit(EXIT_FAILURE);
+	// if passed kmer in is zero, just use whatever the matrix is trained as.
+	if(target_kmer != 0 && kmer != target_kmer ) {
+			fprintf(stderr, "The sensing_matrix was trained with a different kmer than your requested kmer\n");
+			exit(EXIT_FAILURE);
 	}
 
 	width = pow_four(kmer);
@@ -344,6 +345,7 @@ struct matrix *load_sensing_matrix(const char *filename, unsigned int target_kme
 		read = gzgetline(&buf, &len, fh);
 		if(read == 0)  {
 			fprintf(stderr, "Error parsing sensing matrix, could not read header\n");
+			fprintf(stderr, "%s\n", buf);
 			exit(EXIT_FAILURE);
 		}
 
