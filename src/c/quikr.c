@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
 	struct matrix *sensing_matrix = load_sensing_matrix(sensing_matrix_filename, kmer);
 
 	if(kmer == 0) {
-		fprintf(stdout, "Warning: zero is not a valid kmer, inferring kmer from sensing matrix\n");
+		fprintf(stdout, "Warning: zero is not a valid kmer, inferring kmer from sensing matrix (%d)\n", sensing_matrix->kmer);
 		kmer = sensing_matrix->kmer;
 	}
 
