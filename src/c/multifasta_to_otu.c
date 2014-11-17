@@ -45,7 +45,7 @@ void usage() {
 				 "  print version.\n");
 }
 
-char **get_fasta_files_from_file(char *fn) {
+char **get_fasta_files_from_file(char *fn, int file_override) {
 	char **files;
 	int files_count = 0;
 	
@@ -68,7 +68,7 @@ char **get_fasta_files_from_file(char *fn) {
 		strncpy(file, line, strlen(line) + 1 );
 		file[strlen(file)- 1] = '\0';
 	
-		if(access(file, F_OK) == 0) {
+		if(access(file, F_OK) == 0 || file_override) {
 
 			files[files_count] = file;
 			files_count++;
@@ -171,6 +171,7 @@ int main(int argc, char **argv) {
 
 	char *input_fasta_directory = NULL;
 	char *input_fasta_filelist = NULL;
+	char *input_fasta_filenamelist = NULL;
 	char *sensing_matrix_filename = NULL;
 	char *output_filename = NULL;
 
@@ -202,6 +203,7 @@ int main(int argc, char **argv) {
 	static struct option long_options[] = {
 		{"input-directory", required_argument, 0, 'i'},
 		{"input-filelist", required_argument, 0, 'f'},
+		{"input-filename-list", required_argument, 0, 'n'},
 		{"kmer",  required_argument, 0, 'k'},
 		{"lambda",  required_argument, 0, 'l'},
 		{"jobs",  required_argument, 0, 'j'},
@@ -217,7 +219,7 @@ int main(int argc, char **argv) {
 	while (1) {
 		int option_index = 0;
 
-		c = getopt_long (argc, argv, "f:k:l:s:i:o:j:r:hvV", long_options, &option_index);
+		c = getopt_long (argc, argv, "f:k:l:s:i:o:n:j:r:hvV", long_options, &option_index);
 
 		if (c == -1)
 			break;
@@ -228,6 +230,10 @@ int main(int argc, char **argv) {
 				break;
 			case 'f':
 				input_fasta_filelist = optarg;
+				break;
+			case 'n':
+				printf("using -n\n");
+				input_fasta_filenamelist = optarg;
 				break;
 			case 'j':
 				jobs = atoi(optarg);
@@ -318,10 +324,16 @@ int main(int argc, char **argv) {
 
 	// load filenames
 	char **filenames = NULL;
-	if(input_fasta_directory != NULL)
+	char **filenames_alternative = NULL;
+	if(input_fasta_directory != NULL) {
 		filenames = get_fasta_files_from_directory(input_fasta_directory);
-	else
-		filenames = get_fasta_files_from_file(input_fasta_filelist);
+	}
+	else {
+		filenames = get_fasta_files_from_file(input_fasta_filelist, 0);
+		if(input_fasta_filenamelist != NULL) {
+			filenames_alternative = get_fasta_files_from_file(input_fasta_filenamelist, 1);
+		}
+	}
 
 	while(filenames[dir_count] != NULL)
 		dir_count++;
@@ -356,7 +368,7 @@ int main(int argc, char **argv) {
 
 		printf("Beginning to process samples\n");
 
-	#pragma omp parallel for shared(solutions, sensing_matrix_ptr, done)
+	//#pragma omp parallel for shared(solutions, sensing_matrix_ptr, done)
 	for(size_t i = 0; i < dir_count; i++ ) {
 
 		size_t x = 0;
@@ -469,10 +481,18 @@ int main(int argc, char **argv) {
 	fprintf(output_fh, "#OTU_ID\t");
 
 	// print our filename headers
-	for(i = 0; i < dir_count - 1; i++) {
-		fprintf(output_fh, "%s\t", basename(filenames[i]));
+	
+	char **filename_array_to_use = filenames;
+	if(filenames_alternative != NULL) {
+		printf("using alternative: %s %s\n", filenames_alternative[0], filenames[0]);
+		filename_array_to_use = filenames_alternative; 
+		printf("using alternative: %s %s\n", filenames_alternative[0], filenames[0]);
 	}
-	fprintf(output_fh, "%s\n", basename(filenames[dir_count - 1]));
+
+	for(i = 0; i < dir_count - 1; i++) {
+		fprintf(output_fh, "%s\t", basename(filename_array_to_use[i]));
+	}
+	fprintf(output_fh, "%s\n", basename(filename_array_to_use[dir_count - 1]));
 
 	for(j = 0; j < sequences; j++) {
 
